@@ -244,7 +244,7 @@ module PgSync
 
                     to_connection.transaction do
                       # create a temp table
-                      to_connection.exec("CREATE TABLE #{quote_ident(temp_table)} AS SELECT * FROM #{quote_ident(table)} WITH NO DATA")
+                      to_connection.exec("CREATE TABLE #{quote_ident(temp_table)} AS SELECT #{fields} FROM #{quote_ident(table)} WITH NO DATA")
 
                       # load file
                       to_connection.copy_data "COPY #{quote_ident(temp_table)} (#{fields}) FROM STDIN" do
@@ -255,10 +255,10 @@ module PgSync
 
                       if opts[:preserve]
                         # insert into
-                        to_connection.exec("INSERT INTO #{quote_ident(table)} (SELECT * FROM #{quote_ident(temp_table)} WHERE NOT EXISTS (SELECT 1 FROM #{quote_ident(table)} WHERE #{quote_ident(table)}.#{primary_key} = #{quote_ident(temp_table)}.#{quote_ident(primary_key)}))")
+                        to_connection.exec("INSERT INTO #{quote_ident(table)}(#{fields}) (SELECT #{fields} FROM #{quote_ident(temp_table)} WHERE NOT EXISTS (SELECT 1 FROM #{quote_ident(table)} WHERE #{quote_ident(table)}.#{primary_key} = #{quote_ident(temp_table)}.#{quote_ident(primary_key)}))")
                       else
                         to_connection.exec("DELETE FROM #{quote_ident(table)} WHERE #{quote_ident(primary_key)} IN (SELECT #{quote_ident(primary_key)} FROM #{quote_ident(temp_table)})")
-                        to_connection.exec("INSERT INTO #{quote_ident(table)} (SELECT * FROM #{quote_ident(temp_table)})")
+                        to_connection.exec("INSERT INTO #{quote_ident(table)}(#{fields}) (SELECT #{fields} FROM #{quote_ident(temp_table)})")
                       end
 
                       # delete temp table
